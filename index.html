@@ -10,26 +10,28 @@
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <title>Mahjong do Vovô</title>
   <style>
-    :root {
-      --green:#174f3c;
-      --green2:#0f3b2d;
-      --cream:#fff9e9;
-      --tile:#fffdf4;
-      --edge:#d7c89d;
-      --ink:#17201d;
-      --gold:#ffd34d;
-      --red:#b3261e;
-      --blue:#125ca8;
-      --playable:#e9fff2;
-      --blocked:#a9b8b0;
-      --shadow:rgba(0,0,0,.28);
+    :root{
+      --table:#184f3c;
+      --table-dark:#103527;
+      --tile:#fffdf6;
+      --tile-2:#f7f0dc;
+      --edge:#d9caa0;
+      --line:#a48958;
+      --ink:#18211e;
+      --red:#b62822;
+      --blue:#165aa0;
+      --green:#1f7b40;
+      --gold:#ffd54f;
+      --cream:#fff8e7;
     }
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
     html,body{height:100%;margin:0}
     body{
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-      background:linear-gradient(160deg,var(--green),var(--green2));
-      color:white;overflow:hidden;user-select:none;
+      color:#fff;
+      background:radial-gradient(circle at top,#2a6f55 0%,var(--table) 42%,var(--table-dark) 100%);
+      overflow:hidden;
+      user-select:none;
       padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
     button{font:inherit}
@@ -37,55 +39,107 @@
     .app{height:100%;display:grid;grid-template-rows:auto 1fr auto}
     header{
       display:flex;align-items:center;justify-content:space-between;gap:12px;
-      padding:10px 14px;background:rgba(0,0,0,.18);min-height:58px
+      padding:12px 14px;background:rgba(0,0,0,.17);backdrop-filter:blur(3px)
     }
-    .title{font-size:22px;font-weight:900;letter-spacing:.2px}
-    .status{font-size:18px;font-weight:850;background:white;color:var(--green2);padding:8px 13px;border-radius:14px;white-space:nowrap}
-    #boardWrap{position:relative;overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px}
-    #board{position:relative;transform-origin:center center;flex:0 0 auto}
+    .header-left{display:flex;flex-direction:column;gap:4px}
+    .title{font-size:26px;font-weight:900;line-height:1}
+    .subtitle{font-size:15px;color:#e3f4ea;font-weight:700}
+    .status{
+      font-size:22px;font-weight:900;background:#fff;color:var(--table-dark);
+      border-radius:16px;padding:10px 14px;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.25)
+    }
+    #boardWrap{
+      position:relative;overflow:auto;padding:14px;
+      -webkit-overflow-scrolling:touch;
+    }
+    #board{
+      position:relative;
+      min-width:100%;min-height:100%;
+      margin:auto;
+    }
+    .scroll-hint{
+      position:absolute;left:50%;top:10px;transform:translateX(-50%);
+      z-index:1000;background:rgba(255,255,255,.96);color:var(--table-dark);
+      border-radius:14px;padding:8px 14px;font-size:18px;font-weight:900;
+      box-shadow:0 8px 20px rgba(0,0,0,.18)
+    }
     .tile{
-      position:absolute;border:2px solid #b9aa7d;border-radius:12px;
-      background:linear-gradient(145deg,#fff,var(--tile));
-      box-shadow:0 5px 0 var(--edge),0 8px 12px var(--shadow);
-      display:flex;align-items:center;justify-content:center;cursor:pointer;
-      transition:transform .12s ease,box-shadow .12s ease,filter .12s ease,opacity .2s ease;
-      overflow:hidden
+      position:absolute;
+      border:2px solid #c5b179;
+      border-radius:18px;
+      background:linear-gradient(140deg,#ffffff 0%, var(--tile) 62%, var(--tile-2) 100%);
+      box-shadow:0 7px 0 var(--edge),0 16px 18px rgba(0,0,0,.28);
+      overflow:hidden;
+      cursor:pointer;
+      transition:transform .12s ease, box-shadow .12s ease, filter .12s ease, opacity .12s ease;
     }
-    .tile.playable{background:linear-gradient(145deg,#fff,var(--playable))}
-    .tile.blocked{filter:grayscale(.35) brightness(.83);opacity:.78}
-    .tile.selected{transform:translateY(-6px) scale(1.04);box-shadow:0 5px 0 var(--edge),0 0 0 5px var(--gold),0 12px 18px rgba(0,0,0,.35);z-index:99999!important}
-    .tile.hint{animation:hint .7s ease-in-out 4 alternate}
-    @keyframes hint{to{box-shadow:0 5px 0 var(--edge),0 0 0 7px var(--gold),0 12px 18px rgba(0,0,0,.35)}}
+    .tile-inner{
+      position:absolute;inset:6px 6px 8px 6px;border-radius:13px;background:#fffdf8;
+      border:1px solid #ece1bf;box-shadow: inset 0 0 0 1px rgba(255,255,255,.8);
+      display:flex;align-items:center;justify-content:center;padding:6px;
+    }
+    .tile.playable{box-shadow:0 7px 0 var(--edge),0 0 0 4px rgba(100,255,180,.22),0 16px 18px rgba(0,0,0,.28)}
+    .tile.blocked{filter:grayscale(.18) brightness(.83);opacity:.72}
+    .tile.selected{transform:translateY(-8px) scale(1.03);box-shadow:0 7px 0 var(--edge),0 0 0 7px var(--gold),0 16px 18px rgba(0,0,0,.32)!important;z-index:99999!important}
+    .tile.hint{animation:hint .8s ease-in-out 5 alternate}
+    @keyframes hint{to{box-shadow:0 7px 0 var(--edge),0 0 0 9px var(--gold),0 16px 18px rgba(0,0,0,.32)}}
     .tile.wrong{animation:wrong .28s ease}
-    @keyframes wrong{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
-    .face{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:5px}
+    @keyframes wrong{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+    .face{width:100%;height:100%}
     .face svg{width:100%;height:100%;display:block}
+
     footer{
       display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;
-      padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(0,0,0,.18)
+      padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+      background:rgba(0,0,0,.17);backdrop-filter:blur(3px)
     }
     .action{
-      min-height:54px;border:0;border-radius:15px;background:var(--cream);color:var(--green2);
-      font-size:18px;font-weight:900;box-shadow:0 4px 0 #c7b985;padding:8px 10px
+      min-height:58px;border:0;border-radius:16px;background:var(--cream);color:var(--table-dark);
+      font-size:20px;font-weight:900;box-shadow:0 5px 0 #cab67d;padding:8px 10px
     }
-    .action:active{transform:translateY(2px);box-shadow:0 2px 0 #c7b985}
-    .action:disabled{opacity:.42}
-    .overlay{position:fixed;inset:0;z-index:100000;background:rgba(8,28,21,.86);display:flex;align-items:center;justify-content:center;padding:18px}
-    .card{width:min(520px,100%);max-height:92vh;overflow:auto;background:var(--cream);color:var(--ink);border-radius:24px;padding:24px;box-shadow:0 22px 60px rgba(0,0,0,.45);text-align:center}
-    .card h1{font-size:34px;line-height:1.05;margin:0 0 12px;color:var(--green2)}
-    .card p{font-size:20px;line-height:1.45;margin:10px 0}
-    .primary{width:100%;min-height:64px;border:0;border-radius:17px;background:var(--green);color:white;font-size:23px;font-weight:900;margin-top:14px;box-shadow:0 5px 0 #0a3024}
-    .secondary{width:100%;min-height:56px;border:3px solid var(--green);border-radius:17px;background:transparent;color:var(--green);font-size:19px;font-weight:900;margin-top:12px}
-    .how{background:white;border:2px solid #ded3ad;border-radius:18px;padding:15px;text-align:left}
-    .how strong{font-size:22px;color:var(--green2)}
+    .action:active{transform:translateY(2px);box-shadow:0 3px 0 #cab67d}
+    .action:disabled{opacity:.45}
+
+    .overlay{
+      position:fixed;inset:0;z-index:100000;background:rgba(8,28,21,.86);
+      display:flex;align-items:center;justify-content:center;padding:18px
+    }
+    .card{
+      width:min(560px,100%);max-height:92vh;overflow:auto;
+      background:var(--cream);color:var(--ink);border-radius:26px;
+      padding:24px;box-shadow:0 22px 60px rgba(0,0,0,.45);text-align:center
+    }
+    .card h1{font-size:38px;line-height:1.05;margin:0 0 12px;color:var(--table-dark)}
+    .card p{font-size:22px;line-height:1.45;margin:10px 0}
+    .how{background:#fff;border:2px solid #e4d5a7;border-radius:18px;padding:16px;text-align:left}
+    .how strong{display:block;font-size:25px;color:var(--table-dark);margin-bottom:6px}
+    .primary,.secondary,.level{
+      width:100%;border-radius:18px;font-weight:900;border:0
+    }
+    .primary{
+      min-height:68px;background:var(--table);color:#fff;font-size:25px;margin-top:14px;box-shadow:0 5px 0 #0c2f23
+    }
+    .secondary{
+      min-height:58px;background:transparent;color:var(--table);font-size:21px;border:3px solid var(--table);margin-top:12px
+    }
     .levels{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
-    .level{min-height:82px;border:0;border-radius:16px;background:var(--green);color:white;font-weight:900;font-size:20px;padding:10px}
-    .level small{display:block;font-size:14px;margin-top:4px;opacity:.92}
-    .toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);z-index:90000;background:#fff;color:var(--green2);padding:13px 18px;border-radius:15px;font-size:18px;font-weight:900;box-shadow:0 8px 26px rgba(0,0,0,.35)}
-    @media (orientation:portrait) and (max-width:600px){
-      header{min-height:56px}.title{font-size:19px}.status{font-size:16px}
-      footer{gap:7px}.action{font-size:16px;min-height:50px;padding:6px}
-      #boardWrap{padding:8px}
+    .level{min-height:90px;background:var(--table);color:#fff;font-size:22px;padding:10px;box-shadow:0 5px 0 #0c2f23}
+    .level small{display:block;font-size:15px;opacity:.92;margin-top:4px}
+    .prefs{margin-top:14px;background:#fff;border:2px solid #e4d5a7;border-radius:18px;padding:14px;text-align:left}
+    .prefs strong{display:block;font-size:22px;margin-bottom:10px;color:var(--table-dark)}
+    .size-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .size-btn{min-height:56px;border-radius:14px;border:2px solid var(--table);background:#fff;color:var(--table);font-size:20px;font-weight:900}
+    .size-btn.active{background:var(--table);color:#fff}
+    .toast{
+      position:fixed;left:50%;top:82px;transform:translateX(-50%);z-index:90000;
+      background:#fff;color:var(--table-dark);padding:14px 18px;border-radius:16px;
+      font-size:19px;font-weight:900;box-shadow:0 8px 26px rgba(0,0,0,.35)
+    }
+    @media (max-width:700px){
+      .title{font-size:22px}.subtitle{font-size:14px}.status{font-size:20px}
+      .card h1{font-size:34px}.card p{font-size:20px}
+      .action{font-size:18px;min-height:56px}
+      .scroll-hint{font-size:16px;padding:7px 12px}
     }
     @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
   </style>
@@ -93,10 +147,16 @@
 <body>
 <div class="app">
   <header>
-    <div class="title" id="levelTitle">Mahjong do Vovô</div>
+    <div class="header-left">
+      <div class="title">Mahjong do Vovô</div>
+      <div class="subtitle" id="levelTitle">Fase 1: Começando</div>
+    </div>
     <div class="status" id="pairsText">8 pares</div>
   </header>
-  <main id="boardWrap" aria-label="Tabuleiro de Mahjong"><div id="board"></div></main>
+  <main id="boardWrap" aria-label="Tabuleiro de Mahjong">
+    <div class="scroll-hint hidden" id="scrollHint">↔ Arraste a mesa para ver mais peças</div>
+    <div id="board"></div>
+  </main>
   <footer>
     <button class="action" id="hintBtn">💡 Dica</button>
     <button class="action" id="undoBtn">↩ Desfazer</button>
@@ -107,11 +167,11 @@
 <div class="overlay" id="startScreen">
   <div class="card">
     <h1>Mahjong do Vovô</h1>
-    <p>Um jogo tranquilo de encontrar pares.</p>
+    <p>Peças grandes, símbolos clássicos e jogo sem pressa.</p>
     <div class="how">
       <strong>Como jogar</strong>
-      <p>1. Toque em uma peça clara.</p>
-      <p>2. Toque em outra peça igual.</p>
+      <p>1. Toque em uma peça <b>clara</b>.</p>
+      <p>2. Toque em outra peça <b>igual</b>.</p>
       <p>3. Encontre todos os pares.</p>
     </div>
     <button class="primary" id="playBtn">Jogar</button>
@@ -123,6 +183,13 @@
   <div class="card">
     <h1>Escolha uma fase</h1>
     <div class="levels" id="levels"></div>
+    <div class="prefs">
+      <strong>Tamanho das peças</strong>
+      <div class="size-row">
+        <button class="size-btn" id="sizeLarge">Grande</button>
+        <button class="size-btn" id="sizeXL">Enorme</button>
+      </div>
+    </div>
     <button class="secondary" id="closeLevels">Voltar</button>
   </div>
 </div>
@@ -135,126 +202,243 @@
     <button class="secondary" id="againBtn">Jogar novamente</button>
   </div>
 </div>
+
 <div class="toast hidden" id="toast">Escolha apenas peças claras.</div>
 
 <script>
 'use strict';
-const CONFIG={title:'Mahjong do Vovô'};
-const COLORS={red:'#b3261e',blue:'#125ca8',green:'#14733b',black:'#17201d'};
+const COLORS={red:'#b62822',blue:'#165aa0',green:'#1f7b40',black:'#18211e',gold:'#f0b53f'};
 const SUITS=[];
-for(let n=1;n<=9;n++){SUITS.push(`dot${n}`,`bam${n}`,`char${n}`)}
+for(let n=1;n<=9;n++) SUITS.push(`dot${n}`,`bam${n}`,`char${n}`);
 SUITS.push('east','south','west','north','red','green','white');
 
 const LEVELS=[
- {name:'Começando',cols:4,rows:2,layers:1,types:4},
- {name:'Bem fácil',cols:4,rows:3,layers:1,types:6},
- {name:'Treino',cols:4,rows:4,layers:1,types:8},
- {name:'Primeira pilha',cols:4,rows:3,layers:2,types:10},
- {name:'Mesa média',cols:5,rows:4,layers:1,types:10},
- {name:'Duas alturas',cols:5,rows:4,layers:2,types:12},
- {name:'Grande desafio',cols:6,rows:4,layers:2,types:14},
- {name:'Mesa completa',cols:6,rows:5,layers:2,types:18}
+  {name:'Começando',cols:4,rows:2,layers:1,types:4},
+  {name:'Bem fácil',cols:4,rows:3,layers:1,types:6},
+  {name:'Treino',cols:5,rows:3,layers:1,types:7},
+  {name:'Mais peças',cols:5,rows:4,layers:1,types:10},
+  {name:'Duas alturas',cols:5,rows:4,layers:2,types:12},
+  {name:'Desafio final',cols:6,rows:4,layers:2,types:14}
 ];
 
-let state=null, currentLevel=0, toastTimer=null;
+const SIZE_PRESETS={large:{w:116,h:148,gx:8,gy:10,layer:10},xl:{w:132,h:168,gx:10,gy:12,layer:12}};
+let prefs={size:'xl'};
+let state=null,currentLevel=0,toastTimer=null,scrollTimer=null;
 const $=id=>document.getElementById(id);
+
+function loadPrefs(){try{const raw=localStorage.getItem('mahjong_vovo_prefs');if(raw)prefs=Object.assign(prefs,JSON.parse(raw));}catch(e){}}
+function savePrefs(){try{localStorage.setItem('mahjong_vovo_prefs',JSON.stringify(prefs));}catch(e){}}
+function updateSizeButtons(){ $('sizeLarge').classList.toggle('active',prefs.size==='large'); $('sizeXL').classList.toggle('active',prefs.size==='xl'); }
+
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function layout(def){
- const out=[];
- for(let z=0;z<def.layers;z++){
-   const cols=def.cols-z,rows=def.rows-z;
-   if(cols<2||rows<2)break;
-   for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)out.push({x:x*2+z,y:y*2+z,z});
- }
- if(out.length%2)out.pop();
- return out;
+  const out=[];
+  for(let z=0;z<def.layers;z++){
+    const cols=def.cols-z, rows=def.rows-z;
+    if(cols<2||rows<2) break;
+    for(let y=0;y<rows;y++) for(let x=0;x<cols;x++) out.push({x:x*2+z,y:y*2+z,z});
+  }
+  if(out.length%2) out.pop();
+  return out;
 }
 function free(tile,present,tiles){
- for(const id of present){const b=tiles[id];if(b.z>tile.z&&Math.abs(b.x-tile.x)<2&&Math.abs(b.y-tile.y)<2)return false}
- let left=false,right=false;
- for(const id of present){const b=tiles[id];if(b.z===tile.z&&Math.abs(b.y-tile.y)<2){if(b.x===tile.x-2)left=true;if(b.x===tile.x+2)right=true}}
- return !(left&&right);
+  for(const id of present){ const b=tiles[id]; if(b.z>tile.z && Math.abs(b.x-tile.x)<2 && Math.abs(b.y-tile.y)<2) return false; }
+  let left=false,right=false;
+  for(const id of present){ const b=tiles[id]; if(b.z===tile.z && Math.abs(b.y-tile.y)<2){ if(b.x===tile.x-2) left=true; if(b.x===tile.x+2) right=true; }}
+  return !(left&&right);
 }
 function makeBoard(def){
- const positions=layout(def),tiles=positions.map((p,id)=>({...p,id,face:null,removed:false,el:null}));
- const present=new Set(tiles.map(t=>t.id)),peel=[];
- while(present.size){
-   const avail=[...present].filter(id=>free(tiles[id],present,tiles));
-   if(avail.length<2)return makeBoard(def);
-   shuffle(avail);const a=avail[0],b=avail[1];peel.push([a,b]);present.delete(a);present.delete(b);
- }
- const typePool=SUITS.slice(0,def.types),faces=[];
- for(let i=0;i<peel.length;i++)faces.push(typePool[i%typePool.length]);
- shuffle(faces);
- peel.forEach((pair,i)=>pair.forEach(id=>tiles[id].face=faces[i]));
- return tiles;
+  const positions=layout(def), tiles=positions.map((p,id)=>({...p,id,face:null,removed:false,el:null}));
+  const present=new Set(tiles.map(t=>t.id)), peel=[];
+  let guard=0;
+  while(present.size){
+    if(++guard>10000) return makeBoard(def);
+    const avail=[...present].filter(id=>free(tiles[id],present,tiles));
+    if(avail.length<2) return makeBoard(def);
+    shuffle(avail);
+    const a=avail[0], b=avail[1];
+    peel.push([a,b]);
+    present.delete(a);present.delete(b);
+  }
+  const typePool=SUITS.slice(0,def.types), faces=[];
+  for(let i=0;i<peel.length;i++) faces.push(typePool[i%typePool.length]);
+  shuffle(faces);
+  peel.forEach((pair,i)=>pair.forEach(id=>tiles[id].face=faces[i]));
+  return tiles;
 }
+
 function svgWrap(content){return `<svg viewBox="0 0 100 126" aria-hidden="true">${content}</svg>`}
+function tileMark(text,color,x=14,y=18,fs=11){return `<text x="${x}" y="${y}" font-size="${fs}" font-weight="800" fill="${color}" font-family="Arial, sans-serif">${text}</text>`}
+function tileMarkBottom(text,color,fs=11){return `<text x="85" y="113" text-anchor="end" font-size="${fs}" font-weight="800" fill="${color}" font-family="Arial, sans-serif">${text}</text>`}
 function circle(x,y,r,fill,stroke='none',sw=0){return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`}
+function dotChip(x,y,main){
+  return `<g>${circle(x,y,11,'#ffffff',main,4)}${circle(x,y,4,main)}${circle(x,y,1.6,'#ffffff')}</g>`;
+}
 function dotFace(n){
- const pos={1:[[50,63]],2:[[32,38],[68,88]],3:[[30,34],[50,63],[70,92]],4:[[30,36],[70,36],[30,90],[70,90]],5:[[30,34],[70,34],[50,63],[30,92],[70,92]],6:[[28,30],[72,30],[28,63],[72,63],[28,96],[72,96]],7:[[28,26],[72,26],[28,54],[50,63],[72,72],[28,100],[72,100]],8:[[28,25],[72,25],[28,50],[72,50],[28,76],[72,76],[28,101],[72,101]],9:[[27,25],[50,25],[73,25],[27,63],[50,63],[73,63],[27,101],[50,101],[73,101]]}[n];
- const palette=[COLORS.red,COLORS.blue,COLORS.green];
- return svgWrap(pos.map((p,i)=>circle(p[0],p[1],10,palette[i%3],'#fff',2)+circle(p[0],p[1],3,'#fff')).join(''));
+  const pos={1:[[50,63]],2:[[32,38],[68,88]],3:[[30,35],[50,63],[70,91]],4:[[30,36],[70,36],[30,90],[70,90]],5:[[30,35],[70,35],[50,63],[30,91],[70,91]],6:[[28,30],[72,30],[28,63],[72,63],[28,96],[72,96]],7:[[28,26],[72,26],[28,51],[72,51],[50,63],[28,99],[72,99]],8:[[28,25],[72,25],[28,49],[72,49],[28,77],[72,77],[28,101],[72,101]],9:[[27,24],[50,24],[73,24],[27,63],[50,63],[73,63],[27,102],[50,102],[73,102]]}[n];
+  const palette=[COLORS.red,COLORS.blue,COLORS.green];
+  const marks=tileMark(n,COLORS.blue)+tileMarkBottom(n,COLORS.blue);
+  return svgWrap(marks + pos.map((p,i)=>dotChip(p[0],p[1],palette[i%3])).join(''));
+}
+function bamboo(x,y,color,leafColor){
+  return `<g transform="translate(${x} ${y})"><rect x="-6" y="-18" width="12" height="36" rx="6" fill="${color}"/><rect x="-8" y="-10" width="16" height="4" rx="2" fill="#ffffff88"/><rect x="-8" y="6" width="16" height="4" rx="2" fill="#ffffff88"/><path d="M-3 -22 C-16 -25 -15 -30 -9 -35" stroke="${leafColor}" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M3 -22 C16 -25 15 -30 9 -35" stroke="${leafColor}" stroke-width="4" stroke-linecap="round" fill="none"/></g>`;
 }
 function bamFace(n){
- const positions=[];const cols=n<=3?n:3;const rows=Math.ceil(n/cols);
- for(let i=0;i<n;i++){const c=i%cols,r=Math.floor(i/cols);positions.push([50+(c-(cols-1)/2)*27,63+(r-(rows-1)/2)*32])}
- return svgWrap(positions.map((p,i)=>`<g transform="translate(${p[0]} ${p[1]}) rotate(${i%2?5:-5})"><rect x="-5" y="-17" width="10" height="34" rx="5" fill="${i%3===0?COLORS.green:COLORS.blue}"/><path d="M-7 -5 L7 -5 M-7 6 L7 6" stroke="#fff" stroke-width="2"/></g>`).join(''));
+  const pos={1:[[50,63]],2:[[40,45],[60,81]],3:[[50,34],[34,78],[66,78]],4:[[36,42],[64,42],[36,84],[64,84]],5:[[36,38],[64,38],[50,63],[36,88],[64,88]],6:[[34,34],[66,34],[34,63],[66,63],[34,92],[66,92]],7:[[50,27],[34,49],[66,49],[50,63],[34,78],[66,78],[50,99]],8:[[34,28],[66,28],[34,49],[66,49],[34,77],[66,77],[34,99],[66,99]],9:[[34,27],[50,27],[66,27],[34,63],[50,63],[66,63],[34,99],[50,99],[66,99]]}[n];
+  const stalkColors=[COLORS.green,'#2d9950',COLORS.blue];
+  const marks=tileMark(n,COLORS.green)+tileMarkBottom(n,COLORS.green);
+  return svgWrap(marks + pos.map((p,i)=>bamboo(p[0],p[1],stalkColors[i%3],i%2?COLORS.red:COLORS.green)).join(''));
 }
-const zh=['','一','二','三','四','五','六','七','八','九'];
-function charFace(n){return svgWrap(`<text x="50" y="58" text-anchor="middle" font-size="43" font-weight="900" fill="${COLORS.red}">${zh[n]}</text><text x="50" y="100" text-anchor="middle" font-size="38" font-weight="900" fill="${COLORS.black}">萬</text>`)}
+const zhNum=['','一','二','三','四','五','六','七','八','九'];
+function charFace(n){
+  return svgWrap(
+    tileMark(n,COLORS.red)+tileMarkBottom(n,COLORS.red)+
+    `<text x="50" y="53" text-anchor="middle" font-size="34" font-weight="900" fill="${COLORS.red}" font-family="serif">${zhNum[n]}</text>`+
+    `<text x="50" y="95" text-anchor="middle" font-size="36" font-weight="900" fill="${COLORS.black}" font-family="serif">萬</text>`
+  );
+}
 function honorFace(face){
- const data={east:['東',COLORS.green],south:['南',COLORS.red],west:['西',COLORS.blue],north:['北',COLORS.black],red:['中',COLORS.red],green:['發',COLORS.green]};
- if(face==='white')return svgWrap(`<rect x="20" y="21" width="60" height="84" rx="5" fill="none" stroke="${COLORS.blue}" stroke-width="8"/>`);
- const d=data[face];return svgWrap(`<text x="50" y="84" text-anchor="middle" font-size="63" font-weight="900" fill="${d[1]}">${d[0]}</text>`)
+  const data={east:['東',COLORS.green,'Leste'],south:['南',COLORS.red,'Sul'],west:['西',COLORS.blue,'Oeste'],north:['北',COLORS.black,'Norte'],red:['中',COLORS.red,'Vermelho'],green:['發',COLORS.green,'Verde']};
+  if(face==='white'){
+    return svgWrap(tileMark('Br',COLORS.blue,10,16,10)+tileMarkBottom('Br',COLORS.blue,10)+`<rect x="24" y="22" width="52" height="80" rx="5" fill="none" stroke="${COLORS.blue}" stroke-width="7"/>`);
+  }
+  const d=data[face];
+  return svgWrap(tileMark(d[2].slice(0,2),d[1],9,16,10)+tileMarkBottom(d[2].slice(0,2),d[1],10)+`<text x="50" y="84" text-anchor="middle" font-size="60" font-weight="900" fill="${d[1]}" font-family="serif">${d[0]}</text>`);
 }
-function faceHTML(face){if(face.startsWith('dot'))return dotFace(+face.slice(3));if(face.startsWith('bam'))return bamFace(+face.slice(3));if(face.startsWith('char'))return charFace(+face.slice(4));return honorFace(face)}
+function faceHTML(face){
+  if(face.startsWith('dot')) return dotFace(+face.slice(3));
+  if(face.startsWith('bam')) return bamFace(+face.slice(3));
+  if(face.startsWith('char')) return charFace(+face.slice(4));
+  return honorFace(face);
+}
+
 function startLevel(i){
- currentLevel=i;const def=LEVELS[i],tiles=makeBoard(def);
- state={tiles,present:new Set(tiles.map(t=>t.id)),selected:null,undo:[]};
- $('startScreen').classList.add('hidden');$('levelScreen').classList.add('hidden');$('winScreen').classList.add('hidden');
- $('levelTitle').textContent=`Fase ${i+1}: ${def.name}`;render();
+  currentLevel=i;
+  state={tiles:makeBoard(LEVELS[i]),present:null,selected:null,undo:[]};
+  state.present=new Set(state.tiles.map(t=>t.id));
+  $('startScreen').classList.add('hidden');
+  $('levelScreen').classList.add('hidden');
+  $('winScreen').classList.add('hidden');
+  $('levelTitle').textContent=`Fase ${i+1}: ${LEVELS[i].name}`;
+  render();
 }
 function render(){
- const board=$('board');board.innerHTML='';
- const wrap=$('boardWrap'),maxZ=Math.max(...state.tiles.map(t=>t.z));
- const baseW=82,baseH=102,gapX=6,gapY=7,layer=7;
- let maxR=0,maxB=0;
- state.tiles.forEach(t=>{
-   const left=t.x/2*(baseW+gapX)+t.z*(baseW+gapX)/2;
-   const top=t.y/2*(baseH+gapY)+t.z*(baseH+gapY)/2;
-   const el=document.createElement('button');el.className='tile';el.setAttribute('aria-label','Peça de Mahjong');
-   Object.assign(el.style,{left:left+'px',top:top+'px',width:baseW+'px',height:baseH+'px',zIndex:String(t.z*1000+t.y*10+t.x)});
-   el.innerHTML=`<div class="face">${faceHTML(t.face)}</div>`;el.onclick=()=>tap(t.id);t.el=el;board.appendChild(el);
-   maxR=Math.max(maxR,left+baseW+maxZ*layer);maxB=Math.max(maxB,top+baseH+maxZ*layer);
- });
- board.style.width=maxR+'px';board.style.height=maxB+'px';
- const scale=Math.min(1,(wrap.clientWidth-18)/maxR,(wrap.clientHeight-18)/maxB);
- board.style.transform=`scale(${scale})`;
- updateTiles();updateStatus();
+  const board=$('board');board.innerHTML='';
+  const wrap=$('boardWrap');
+  const size=SIZE_PRESETS[prefs.size] || SIZE_PRESETS.xl;
+  let maxR=0,maxB=0;
+  state.tiles.forEach(t=>{
+    const left=(t.x/2)*(size.w+size.gx)+t.z*((size.w+size.gx)/2);
+    const top=(t.y/2)*(size.h+size.gy)+t.z*((size.h+size.gy)/2);
+    const el=document.createElement('button');
+    el.className='tile';
+    el.setAttribute('aria-label','Peça de Mahjong');
+    Object.assign(el.style,{left:left+'px',top:top+'px',width:size.w+'px',height:size.h+'px',zIndex:String(t.z*1000+t.y*10+t.x)});
+    el.innerHTML=`<div class="tile-inner"><div class="face">${faceHTML(t.face)}</div></div>`;
+    el.onclick=()=>tap(t.id);
+    t.el=el;
+    board.appendChild(el);
+    maxR=Math.max(maxR,left+size.w+18);
+    maxB=Math.max(maxB,top+size.h+18);
+  });
+  board.style.width=Math.max(maxR,wrap.clientWidth-28)+'px';
+  board.style.height=Math.max(maxB,wrap.clientHeight-28)+'px';
+  wrap.scrollLeft=0;wrap.scrollTop=0;
+  const needScroll=maxR>(wrap.clientWidth-20)||maxB>(wrap.clientHeight-20);
+  $('scrollHint').classList.toggle('hidden',!needScroll);
+  clearTimeout(scrollTimer);
+  if(needScroll) scrollTimer=setTimeout(()=>$('scrollHint').classList.add('hidden'),2800);
+  updateTiles();updateStatus();
 }
-function updateTiles(){state.tiles.forEach(t=>{if(!t.el)return;if(t.removed){t.el.style.display='none';return}const isFree=free(t,state.present,state.tiles);t.el.classList.toggle('playable',isFree);t.el.classList.toggle('blocked',!isFree);t.el.classList.toggle('selected',state.selected===t.id)})}
-function updateStatus(){$('pairsText').textContent=`${state.present.size/2} pares`;$('undoBtn').disabled=!state.undo.length}
+function updateTiles(){
+  state.tiles.forEach(t=>{
+    if(!t.el) return;
+    if(t.removed){t.el.style.display='none';return;}
+    const isFree=free(t,state.present,state.tiles);
+    t.el.style.display='';
+    t.el.classList.toggle('playable',isFree);
+    t.el.classList.toggle('blocked',!isFree);
+    t.el.classList.toggle('selected',state.selected===t.id);
+  });
+}
+function updateStatus(){ $('pairsText').textContent=`${state.present.size/2} pares`; $('undoBtn').disabled=!state.undo.length; }
 function tap(id){
- const t=state.tiles[id];if(!free(t,state.present,state.tiles)){showToast();t.el.classList.remove('wrong');void t.el.offsetWidth;t.el.classList.add('wrong');return}
- if(state.selected===id){state.selected=null;updateTiles();return}
- if(state.selected===null){state.selected=id;updateTiles();return}
- const a=state.tiles[state.selected];
- if(a.face===t.face){state.undo.push([a.id,t.id]);a.removed=t.removed=true;state.present.delete(a.id);state.present.delete(t.id);state.selected=null;updateTiles();updateStatus();if(!state.present.size)setTimeout(win,280);else if(!hasMove())setTimeout(hint,300)}
- else{state.selected=id;updateTiles()}
+  const t=state.tiles[id];
+  if(t.removed) return;
+  if(!free(t,state.present,state.tiles)){
+    showToast();
+    t.el.classList.remove('wrong'); void t.el.offsetWidth; t.el.classList.add('wrong');
+    return;
+  }
+  if(state.selected===id){ state.selected=null; updateTiles(); return; }
+  if(state.selected===null){ state.selected=id; updateTiles(); return; }
+  const a=state.tiles[state.selected];
+  if(a.face===t.face){
+    state.undo.push([a.id,t.id]);
+    a.removed=true; t.removed=true;
+    state.present.delete(a.id); state.present.delete(t.id);
+    state.selected=null;
+    updateTiles();updateStatus();
+    if(!state.present.size) setTimeout(win,280);
+    else if(!hasMove()) setTimeout(hint,300);
+  } else {
+    state.selected=id; updateTiles();
+  }
 }
-function pairs(){const by={};[...state.present].map(id=>state.tiles[id]).filter(t=>free(t,state.present,state.tiles)).forEach(t=>(by[t.face]??=[]).push(t));return Object.values(by).filter(a=>a.length>1)}
-function hasMove(){return pairs().length>0}
-function hint(){document.querySelectorAll('.hint').forEach(e=>e.classList.remove('hint'));let p=pairs()[0];if(!p){reshuffle();p=pairs()[0]}if(p){p[0].el.classList.add('hint');p[1].el.classList.add('hint');setTimeout(()=>p.forEach(t=>t.el&&t.el.classList.remove('hint')),3000)}}
-function reshuffle(){const ids=[...state.present],faces=shuffle(ids.map(id=>state.tiles[id].face));ids.forEach((id,i)=>{state.tiles[id].face=faces[i];state.tiles[id].el.querySelector('.face').innerHTML=faceHTML(faces[i])});state.undo=[];state.selected=null;updateTiles();updateStatus();if(!hasMove())reshuffle()}
-function undo(){const p=state.undo.pop();if(!p)return;p.forEach(id=>{state.tiles[id].removed=false;state.present.add(id)});state.selected=null;updateTiles();updateStatus()}
-function win(){$('nextBtn').textContent=currentLevel===LEVELS.length-1?'Jogar desde o começo':'Próxima fase';$('winScreen').classList.remove('hidden')}
-function showToast(){clearTimeout(toastTimer);$('toast').classList.remove('hidden');toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),1800)}
-function openLevels(){const box=$('levels');box.innerHTML='';LEVELS.forEach((l,i)=>{const b=document.createElement('button');b.className='level';b.innerHTML=`Fase ${i+1}<small>${l.name}</small>`;b.onclick=()=>startLevel(i);box.appendChild(b)});$('levelScreen').classList.remove('hidden')}
-$('playBtn').onclick=()=>startLevel(0);$('chooseBtn').onclick=openLevels;$('closeLevels').onclick=()=>$('levelScreen').classList.add('hidden');
-$('hintBtn').onclick=hint;$('undoBtn').onclick=undo;$('menuBtn').onclick=openLevels;$('againBtn').onclick=()=>startLevel(currentLevel);$('nextBtn').onclick=()=>startLevel(currentLevel===LEVELS.length-1?0:currentLevel+1);
+function pairs(){
+  const by={};
+  [...state.present].map(id=>state.tiles[id]).filter(t=>free(t,state.present,state.tiles)).forEach(t=>(by[t.face]??=[]).push(t));
+  return Object.values(by).filter(a=>a.length>1);
+}
+function hasMove(){ return pairs().length>0; }
+function clearHints(){ document.querySelectorAll('.tile.hint').forEach(e=>e.classList.remove('hint')); }
+function hint(){
+  clearHints();
+  let p=pairs()[0];
+  if(!p){ reshuffle(); p=pairs()[0]; }
+  if(p){
+    p[0].el.classList.add('hint'); p[1].el.classList.add('hint');
+    setTimeout(()=>p.forEach(t=>t.el&&t.el.classList.remove('hint')),3000);
+    p[0].el.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
+  }
+}
+function reshuffle(){
+  const ids=[...state.present];
+  const faces=shuffle(ids.map(id=>state.tiles[id].face));
+  ids.forEach((id,i)=>{ state.tiles[id].face=faces[i]; state.tiles[id].el.querySelector('.face').innerHTML=faceHTML(faces[i]); });
+  state.undo=[]; state.selected=null; updateTiles(); updateStatus();
+  if(!hasMove()) reshuffle();
+}
+function undo(){
+  const p=state.undo.pop(); if(!p) return;
+  p.forEach(id=>{ state.tiles[id].removed=false; state.present.add(id); });
+  state.selected=null; updateTiles(); updateStatus();
+}
+function win(){ $('nextBtn').textContent=currentLevel===LEVELS.length-1?'Jogar desde o começo':'Próxima fase'; $('winScreen').classList.remove('hidden'); }
+function showToast(){ clearTimeout(toastTimer); $('toast').classList.remove('hidden'); toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),1800); }
+function openLevels(){
+  const box=$('levels'); box.innerHTML='';
+  LEVELS.forEach((l,i)=>{
+    const b=document.createElement('button'); b.className='level'; b.innerHTML=`Fase ${i+1}<small>${l.name}</small>`; b.onclick=()=>startLevel(i); box.appendChild(b);
+  });
+  updateSizeButtons();
+  $('levelScreen').classList.remove('hidden');
+}
+function setSize(size){ prefs.size=size; savePrefs(); updateSizeButtons(); if(state) render(); }
+
+$('playBtn').onclick=()=>startLevel(0);
+$('chooseBtn').onclick=openLevels;
+$('closeLevels').onclick=()=>$('levelScreen').classList.add('hidden');
+$('hintBtn').onclick=hint;
+$('undoBtn').onclick=undo;
+$('menuBtn').onclick=openLevels;
+$('againBtn').onclick=()=>startLevel(currentLevel);
+$('nextBtn').onclick=()=>startLevel(currentLevel===LEVELS.length-1?0:currentLevel+1);
+$('sizeLarge').onclick=()=>setSize('large');
+$('sizeXL').onclick=()=>setSize('xl');
 window.addEventListener('resize',()=>state&&render());
-if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+loadPrefs(); updateSizeButtons();
+if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
 </body>
 </html>
