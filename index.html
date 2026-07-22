@@ -1,813 +1,260 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>Mahjong</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --table:#3f7d68; --table-dark:#2f5f4f;
-    --tile:#f7f2e6; --tile-lo:#e9dfc6; --tile-edge:#c9bd9b;
-    --ink:#2b2b2b; --gold:#eab338; --wood:#b3763f; --wood-dark:#8a5a2f;
-    --panel:#fbf8f1;
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{height:100%; margin:0;}
-  body{
-    font-family:'Nunito',system-ui,sans-serif;
-    color:var(--ink);
-    background:
-      radial-gradient(120% 120% at 50% 0%, #4c8d77 0%, var(--table) 45%, var(--table-dark) 100%);
-    display:flex; flex-direction:column;
-    overflow:hidden; user-select:none;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  }
-  .hidden{display:none !important;}
-
-  /* HUD */
-  header{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:10px 14px; gap:10px; flex-wrap:wrap;
-    background:rgba(0,0,0,0.12);
-  }
-  .fase-info{display:flex; flex-direction:column; line-height:1.1;}
-  #faseNum{font-family:'Baloo 2'; font-weight:800; font-size:19px; color:#fff;}
-  #faseNome{font-size:13px; color:#e7f0ea;}
-  .stats{display:flex; gap:14px; color:#fff; font-weight:700; font-size:15px;}
-  .stats .lbl{font-size:11px; color:#d7e6de; font-weight:700; display:block;}
-
-  /* Board */
-  #boardViewport{
-    flex:1; position:relative; width:100%;
-    overflow-x:auto; overflow-y:hidden;
-    display:block;
-  }
-  #board{position:absolute; top:6px; left:0; transform-origin:top left;}
-
-  /* Peças */
-  .tile{
-    position:absolute;
-    border-radius:8px;
-    background:linear-gradient(160deg,#fffdf7 0%, var(--tile) 55%, var(--tile-lo) 100%);
-    box-shadow:0 3px 0 var(--tile-edge), 0 6px 9px rgba(0,0,0,0.28);
-    border:1px solid #d9cea9;
-    cursor:pointer;
-    transition:transform .08s ease, box-shadow .08s ease, filter .15s ease;
-  }
-  .tile-face{
-    position:absolute; inset:3px 3px 5px 3px;
-    display:flex; align-items:center; justify-content:center;
-    background:#fffdf8; border-radius:5px;
-    overflow:hidden;
-  }
-  .tile.blocked{filter:brightness(.9) saturate(.75); box-shadow:0 2px 0 var(--tile-edge), 0 3px 5px rgba(0,0,0,0.22);}
-  .tile.selected{
-    transform:translateY(-4px);
-    box-shadow:0 5px 0 var(--tile-edge), 0 0 0 4px var(--gold), 0 8px 14px rgba(0,0,0,0.34);
-    z-index:99999 !important;
-  }
-  .tile.hint{animation:pulse 0.6s ease-in-out infinite alternate;}
-  @keyframes pulse{from{box-shadow:0 3px 0 var(--tile-edge), 0 0 0 3px rgba(234,179,56,.4);}
-                   to{box-shadow:0 3px 0 var(--tile-edge), 0 0 0 6px rgba(234,179,56,.95);}}
-  .tile.removing{animation:pop .26s ease forwards;}
-  @keyframes pop{to{transform:scale(1.35); opacity:0;}}
-  .tile.shake{animation:shk .3s;}
-  @keyframes shk{25%{transform:translateX(-3px);}75%{transform:translateX(3px);}}
-
-  /* Símbolos */
-  .pipgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:2px; place-content:center; width:100%; height:100%; padding:7px;}
-  .pip{align-self:center; justify-self:center;}
-  .pipgrid.dot .pip{width:9px; height:9px; border-radius:50%;
-    background:radial-gradient(circle at 35% 30%, #7fd0dd, #1f7a8c 70%); box-shadow:0 0 0 1px rgba(0,0,0,.08);}
-  .pipgrid.bam .pip{width:5px; height:17px; border-radius:2px;
-    background:linear-gradient(#5cb85c,#2e7d32); box-shadow:0 0 0 1px rgba(0,0,0,.08);}
-  .corner{position:absolute; top:2px; left:4px; font-size:10px; font-weight:800; color:#b7ac8c;}
-  .chr{display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1;}
-  .chr-num{font-family:'Baloo 2'; font-size:23px; font-weight:800; color:#b23a48;}
-  .chr-wan{font-size:13px; color:#3a3a3a; margin-top:1px;}
-  .wind{font-size:27px; font-weight:800;}
-  .w-e{color:#2e7d32;} .w-s{color:#b23a48;} .w-w{color:#1f6fb2;} .w-n{color:#333;}
-  .drag{font-size:26px; font-weight:800;}
-  .d-r{color:#c0392b;} .d-g{color:#2e7d32;}
-  .d-w .dw-frame{display:block; width:22px; height:27px; border:3px solid #1f6fb2; border-radius:3px;}
-  .emo{font-size:30px;}
-
-  /* Controles */
-  footer{
-    display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-    flex-wrap:wrap; justify-content:center; background:rgba(0,0,0,0.12);
-  }
-  .btn{
-    font-family:'Nunito',sans-serif; font-weight:800; font-size:15px;
-    color:#fff; background:linear-gradient(#c58748,var(--wood));
-    border:none; border-bottom:3px solid var(--wood-dark);
-    border-radius:12px; padding:11px 15px; cursor:pointer; min-height:46px;
-    display:flex; align-items:center; gap:6px;
-  }
-  .btn:active{transform:translateY(1px); border-bottom-width:2px;}
-  .btn:disabled{opacity:.45; cursor:default;}
-  .btn.ghost{background:rgba(255,255,255,.15); border-bottom-color:rgba(0,0,0,.25);}
-
-  /* Overlays */
-  .overlay{
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-    background:rgba(20,40,33,.72); backdrop-filter:blur(3px); z-index:100000; padding:20px;
-  }
-  .card{
-    background:var(--panel); border-radius:20px; padding:26px 24px; max-width:440px; width:100%;
-    box-shadow:0 20px 50px rgba(0,0,0,.4); text-align:center;
-  }
-  .card h1{font-family:'Baloo 2'; font-weight:800; margin:.1em 0; color:#2f5f4f;}
-  #titulo{font-size:34px;}
-  #subtitulo{color:#5a6b63; margin:0 0 6px; font-weight:700;}
-  .card p{color:#4a5a52; line-height:1.5;}
-  .instr{background:#eef4f0; border-radius:12px; padding:12px 14px; font-size:14px; text-align:left; margin:14px 0;}
-  .card .row{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:16px;}
-  .btn-big{font-size:18px; padding:14px 26px;}
-
-  /* Menu de fases */
-  .fase-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; margin:16px 0; max-height:56vh; overflow-y:auto;}
-  .fase-btn{
-    display:flex; flex-direction:column; align-items:center; gap:3px; padding:12px 6px;
-    border:none; border-radius:12px; cursor:pointer; background:#2f5f4f; color:#fff;
-    border-bottom:3px solid #234a3d; min-height:64px; justify-content:center;
-  }
-  .fase-btn .fase-n{font-family:'Baloo 2'; font-size:22px; font-weight:800;}
-  .fase-btn .fase-nm{font-size:11px; opacity:.9;}
-  .fase-btn.locked{background:#c9d3ce; color:#8a968f; border-bottom-color:#b4bfb9; cursor:default;}
-  .fase-btn .fase-lock{font-size:18px;}
-
-  /* Toast */
-  #toast{
-    position:fixed; left:50%; bottom:84px; transform:translateX(-50%);
-    background:#2f5f4f; color:#fff; padding:12px 16px; border-radius:14px;
-    display:flex; gap:12px; align-items:center; z-index:90000;
-    box-shadow:0 8px 24px rgba(0,0,0,.35); font-weight:700;
-  }
-  #toast .btn{padding:8px 14px; min-height:auto; font-size:14px;}
-
-  @media (prefers-reduced-motion: reduce){
-    .tile,.tile.removing,.tile.hint,.tile.shake{animation:none !important; transition:none !important;}
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#174f3c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <title>Mahjong do Vovô</title>
+  <style>
+    :root {
+      --green:#174f3c;
+      --green2:#0f3b2d;
+      --cream:#fff9e9;
+      --tile:#fffdf4;
+      --edge:#d7c89d;
+      --ink:#17201d;
+      --gold:#ffd34d;
+      --red:#b3261e;
+      --blue:#125ca8;
+      --playable:#e9fff2;
+      --blocked:#a9b8b0;
+      --shadow:rgba(0,0,0,.28);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;margin:0}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      background:linear-gradient(160deg,var(--green),var(--green2));
+      color:white;overflow:hidden;user-select:none;
+      padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    button{font:inherit}
+    .hidden{display:none!important}
+    .app{height:100%;display:grid;grid-template-rows:auto 1fr auto}
+    header{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:10px 14px;background:rgba(0,0,0,.18);min-height:58px
+    }
+    .title{font-size:22px;font-weight:900;letter-spacing:.2px}
+    .status{font-size:18px;font-weight:850;background:white;color:var(--green2);padding:8px 13px;border-radius:14px;white-space:nowrap}
+    #boardWrap{position:relative;overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px}
+    #board{position:relative;transform-origin:center center;flex:0 0 auto}
+    .tile{
+      position:absolute;border:2px solid #b9aa7d;border-radius:12px;
+      background:linear-gradient(145deg,#fff,var(--tile));
+      box-shadow:0 5px 0 var(--edge),0 8px 12px var(--shadow);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;
+      transition:transform .12s ease,box-shadow .12s ease,filter .12s ease,opacity .2s ease;
+      overflow:hidden
+    }
+    .tile.playable{background:linear-gradient(145deg,#fff,var(--playable))}
+    .tile.blocked{filter:grayscale(.35) brightness(.83);opacity:.78}
+    .tile.selected{transform:translateY(-6px) scale(1.04);box-shadow:0 5px 0 var(--edge),0 0 0 5px var(--gold),0 12px 18px rgba(0,0,0,.35);z-index:99999!important}
+    .tile.hint{animation:hint .7s ease-in-out 4 alternate}
+    @keyframes hint{to{box-shadow:0 5px 0 var(--edge),0 0 0 7px var(--gold),0 12px 18px rgba(0,0,0,.35)}}
+    .tile.wrong{animation:wrong .28s ease}
+    @keyframes wrong{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+    .face{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:5px}
+    .face svg{width:100%;height:100%;display:block}
+    footer{
+      display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;
+      padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(0,0,0,.18)
+    }
+    .action{
+      min-height:54px;border:0;border-radius:15px;background:var(--cream);color:var(--green2);
+      font-size:18px;font-weight:900;box-shadow:0 4px 0 #c7b985;padding:8px 10px
+    }
+    .action:active{transform:translateY(2px);box-shadow:0 2px 0 #c7b985}
+    .action:disabled{opacity:.42}
+    .overlay{position:fixed;inset:0;z-index:100000;background:rgba(8,28,21,.86);display:flex;align-items:center;justify-content:center;padding:18px}
+    .card{width:min(520px,100%);max-height:92vh;overflow:auto;background:var(--cream);color:var(--ink);border-radius:24px;padding:24px;box-shadow:0 22px 60px rgba(0,0,0,.45);text-align:center}
+    .card h1{font-size:34px;line-height:1.05;margin:0 0 12px;color:var(--green2)}
+    .card p{font-size:20px;line-height:1.45;margin:10px 0}
+    .primary{width:100%;min-height:64px;border:0;border-radius:17px;background:var(--green);color:white;font-size:23px;font-weight:900;margin-top:14px;box-shadow:0 5px 0 #0a3024}
+    .secondary{width:100%;min-height:56px;border:3px solid var(--green);border-radius:17px;background:transparent;color:var(--green);font-size:19px;font-weight:900;margin-top:12px}
+    .how{background:white;border:2px solid #ded3ad;border-radius:18px;padding:15px;text-align:left}
+    .how strong{font-size:22px;color:var(--green2)}
+    .levels{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
+    .level{min-height:82px;border:0;border-radius:16px;background:var(--green);color:white;font-weight:900;font-size:20px;padding:10px}
+    .level small{display:block;font-size:14px;margin-top:4px;opacity:.92}
+    .toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);z-index:90000;background:#fff;color:var(--green2);padding:13px 18px;border-radius:15px;font-size:18px;font-weight:900;box-shadow:0 8px 26px rgba(0,0,0,.35)}
+    @media (orientation:portrait) and (max-width:600px){
+      header{min-height:56px}.title{font-size:19px}.status{font-size:16px}
+      footer{gap:7px}.action{font-size:16px;min-height:50px;padding:6px}
+      #boardWrap{padding:8px}
+    }
+    @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
 </head>
 <body>
-
+<div class="app">
   <header>
-    <div class="fase-info">
-      <span id="faseNum">Fase 1</span>
-      <span id="faseNome">Aquecimento</span>
-    </div>
-    <div class="stats">
-      <div><span class="lbl">Restam</span><span id="pares">0 pares</span></div>
-      <div><span class="lbl">Tempo</span><span id="tempo">0:00</span></div>
-    </div>
+    <div class="title" id="levelTitle">Mahjong do Vovô</div>
+    <div class="status" id="pairsText">8 pares</div>
   </header>
-
-  <div id="boardViewport"><div id="board"></div></div>
-
+  <main id="boardWrap" aria-label="Tabuleiro de Mahjong"><div id="board"></div></main>
   <footer>
-    <button class="btn" id="btnDica">💡 Dica</button>
-    <button class="btn" id="btnDesfazer">↩️ Desfazer</button>
-    <button class="btn" id="btnEmbaralhar">🔀 Embaralhar</button>
-    <button class="btn ghost" id="btnReiniciar">🔄 Reiniciar</button>
-    <button class="btn ghost" id="btnFases">▦ Fases</button>
-    <button class="btn ghost" id="btnSom">🔊 Som</button>
-    <button class="btn ghost" id="btnDestacar">👁 Destaque: on</button>
+    <button class="action" id="hintBtn">💡 Dica</button>
+    <button class="action" id="undoBtn">↩ Desfazer</button>
+    <button class="action" id="menuBtn">☰ Menu</button>
   </footer>
+</div>
 
-  <!-- Tela inicial -->
-  <div class="overlay" id="startScreen">
-    <div class="card">
-      <p id="subtitulo">Encontre os pares</p>
-      <h1 id="titulo">Mahjong</h1>
-      <div class="instr">
-        <strong>Como jogar:</strong> toque em duas peças <b>iguais</b> que estejam <b>livres</b> para removê-las.
-        Uma peça está livre quando não tem nada em cima e tem o lado esquerdo <u>ou</u> o direito desimpedido.
-        Limpe toda a mesa para vencer. Sem pressa e sem relógio contra você.
-      </div>
-      <div class="row">
-        <button class="btn btn-big" id="btnJogar">▶ Jogar</button>
-        <button class="btn ghost" id="btnMenuStart">▦ Escolher fase</button>
-      </div>
+<div class="overlay" id="startScreen">
+  <div class="card">
+    <h1>Mahjong do Vovô</h1>
+    <p>Um jogo tranquilo de encontrar pares.</p>
+    <div class="how">
+      <strong>Como jogar</strong>
+      <p>1. Toque em uma peça clara.</p>
+      <p>2. Toque em outra peça igual.</p>
+      <p>3. Encontre todos os pares.</p>
     </div>
+    <button class="primary" id="playBtn">Jogar</button>
+    <button class="secondary" id="chooseBtn">Escolher fase</button>
   </div>
+</div>
 
-  <!-- Menu de fases -->
-  <div class="overlay hidden" id="levelMenu">
-    <div class="card">
-      <h1>Fases</h1>
-      <div class="fase-grid" id="faseGrid"></div>
-      <div class="row"><button class="btn ghost" id="btnMenuVoltar">Voltar</button></div>
-    </div>
+<div class="overlay hidden" id="levelScreen">
+  <div class="card">
+    <h1>Escolha uma fase</h1>
+    <div class="levels" id="levels"></div>
+    <button class="secondary" id="closeLevels">Voltar</button>
   </div>
+</div>
 
-  <!-- Vitória -->
-  <div class="overlay hidden" id="winScreen">
-    <div class="card">
-      <h1 id="winTitulo">Fase concluída!</h1>
-      <p id="winTexto"></p>
-      <div class="row">
-        <button class="btn btn-big" id="btnProxima">Próxima fase ▶</button>
-        <button class="btn ghost" id="btnJogarNovamente">Jogar de novo</button>
-        <button class="btn ghost" id="btnWinFases">▦ Fases</button>
-      </div>
-    </div>
+<div class="overlay hidden" id="winScreen">
+  <div class="card">
+    <h1>Você conseguiu!</h1>
+    <p>Todos os pares foram encontrados.</p>
+    <button class="primary" id="nextBtn">Próxima fase</button>
+    <button class="secondary" id="againBtn">Jogar novamente</button>
   </div>
-
-  <!-- Toast sem jogadas -->
-  <div id="toast" class="hidden">
-    <span>Sem jogadas à vista.</span>
-    <button class="btn" id="toastBtn">Embaralhar</button>
-  </div>
+</div>
+<div class="toast hidden" id="toast">Escolha apenas peças claras.</div>
 
 <script>
-/* ============================================================
-   NÚCLEO DO JOGO (lógica pura, sem DOM)
-   Coordenadas: cada peça ocupa 2 unidades em x e 2 em y.
-   Peças na mesma camada ficam em coords pares (0,2,4...).
-   Camadas superiores centralizam com deslocamento de 1 unidade.
-   ============================================================ */
+'use strict';
+const CONFIG={title:'Mahjong do Vovô'};
+const COLORS={red:'#b3261e',blue:'#125ca8',green:'#14733b',black:'#17201d'};
+const SUITS=[];
+for(let n=1;n<=9;n++){SUITS.push(`dot${n}`,`bam${n}`,`char${n}`)}
+SUITS.push('east','south','west','north','red','green','white');
 
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-/* Uma peça está livre se: nada em cima E (lado esquerdo livre OU direito livre). */
-function isFreeIn(tile, presentSet, tilesById) {
-  for (const id of presentSet) {
-    const b = tilesById[id];
-    if (b.z > tile.z && Math.abs(b.x - tile.x) < 2 && Math.abs(b.y - tile.y) < 2) {
-      return false; // coberta por cima
-    }
-  }
-  let left = false, right = false;
-  for (const id of presentSet) {
-    const b = tilesById[id];
-    if (b.z === tile.z && Math.abs(b.y - tile.y) < 2) {
-      if (b.x === tile.x - 2) left = true;
-      if (b.x === tile.x + 2) right = true;
-    }
-  }
-  return !(left && right);
-}
-
-/* ---------- Layouts ---------- */
-/* Pirâmide: camada 0 é a base cheia; cada camada sobe deslocada 1 unidade
-   e encolhe 1 peça em cada dimensão. maxLayers limita a altura. */
-function pyramidLayout(cols, rows, maxLayers) {
-  const tiles = [];
-  for (let k = 0; k < maxLayers; k++) {
-    const c = cols - k, r = rows - k;
-    if (c < 1 || r < 1) break;
-    for (let i = 0; i < c; i++) {
-      for (let j = 0; j < r; j++) {
-        tiles.push({ x: k + 2 * i, y: k + 2 * j, z: k });
-      }
-    }
-  }
-  return tiles;
-}
-
-/* Garante contagem par (necessário para pares). Remove a peça de camada
-   mais alta se sobrar uma ímpar (não quebra a solucionabilidade). */
-function ensureEven(tiles) {
-  if (tiles.length % 2 === 1) {
-    let idx = 0;
-    for (let i = 1; i < tiles.length; i++) {
-      if (tiles[i].z > tiles[idx].z) idx = i;
-    }
-    tiles.splice(idx, 1);
-  }
-  return tiles;
-}
-
-/* ---------- Faces (identidades das peças) ----------
-   Ordem pensada para clareza: começa com poucos tipos bem distintos. */
-const FACE_ORDER = [
-  'dot1','dot2','dot3',
-  'bam1','bam2','bam3',
-  'chr1','chr2','chr3',
-  'dot4','bam4','chr4',
-  'dot5','bam5','chr5',
-  'windE','windS','windW','windN',
-  'dragR','dragG','dragW',
-  'dot6','bam6','chr6',
-  'dot7','bam7','chr7',
-  'flo1','flo2','flo3','flo4',
-  'sea1','sea2','sea3','sea4',
-  'dot8','bam8','chr8',
-  'dot9','bam9','chr9'
+const LEVELS=[
+ {name:'Começando',cols:4,rows:2,layers:1,types:4},
+ {name:'Bem fácil',cols:4,rows:3,layers:1,types:6},
+ {name:'Treino',cols:4,rows:4,layers:1,types:8},
+ {name:'Primeira pilha',cols:4,rows:3,layers:2,types:10},
+ {name:'Mesa média',cols:5,rows:4,layers:1,types:10},
+ {name:'Duas alturas',cols:5,rows:4,layers:2,types:12},
+ {name:'Grande desafio',cols:6,rows:4,layers:2,types:14},
+ {name:'Mesa completa',cols:6,rows:5,layers:2,types:18}
 ];
 
-/* Gera um tabuleiro SOLUCIONÁVEL por construção.
-   Técnica: "descascar" pares de peças livres na ordem inversa da montagem,
-   garantindo que exista uma sequência de remoção válida. */
-function generateBoard(layoutPositions, orderedFaces) {
-  const tilesById = layoutPositions.map((t, i) => ({ x: t.x, y: t.y, z: t.z, id: i, face: null }));
-  const N = tilesById.length;
-  const pairsNeeded = N / 2;
-
-  // Monta o "pool": uma face por par, cada face em no máx. 4 cópias (2 pares).
-  const pool = [];
-  let fi = 0;
-  while (pool.length < pairsNeeded) {
-    const face = orderedFaces[fi % orderedFaces.length];
-    pool.push(face);
-    if (pool.length < pairsNeeded) pool.push(face);
-    fi++;
-  }
-  shuffle(pool);
-
-  // Descasca posições livres em pares.
-  const present = new Set(tilesById.map(t => t.id));
-  const order = [];
-  let guard = 0;
-  while (present.size > 0) {
-    if (++guard > 100000) return null;
-    const free = [...present].filter(id => isFreeIn(tilesById[id], present, tilesById));
-    if (free.length < 2) return null; // layout não "descascável" — regenera
-    shuffle(free);
-    const a = free[0], b = free[1];
-    order.push([a, b]);
-    present.delete(a);
-    present.delete(b);
-  }
-
-  for (let k = 0; k < order.length; k++) {
-    const [a, b] = order[k];
-    tilesById[a].face = pool[k];
-    tilesById[b].face = pool[k];
-  }
-  return { tiles: tilesById, solution: order };
+let state=null, currentLevel=0, toastTimer=null;
+const $=id=>document.getElementById(id);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function layout(def){
+ const out=[];
+ for(let z=0;z<def.layers;z++){
+   const cols=def.cols-z,rows=def.rows-z;
+   if(cols<2||rows<2)break;
+   for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)out.push({x:x*2+z,y:y*2+z,z});
+ }
+ if(out.length%2)out.pop();
+ return out;
 }
-
-/* Verificação independente: a solução gravada realmente resolve o tabuleiro? */
-function verifySolvable(tilesById, order) {
-  const present = new Set(tilesById.map(t => t.id));
-  for (const [a, b] of order) {
-    if (!present.has(a) || !present.has(b)) return false;
-    if (tilesById[a].face !== tilesById[b].face) return false;
-    if (!isFreeIn(tilesById[a], present, tilesById)) return false;
-    if (!isFreeIn(tilesById[b], present, tilesById)) return false;
-    present.delete(a);
-    present.delete(b);
-  }
-  return present.size === 0;
+function free(tile,present,tiles){
+ for(const id of present){const b=tiles[id];if(b.z>tile.z&&Math.abs(b.x-tile.x)<2&&Math.abs(b.y-tile.y)<2)return false}
+ let left=false,right=false;
+ for(const id of present){const b=tiles[id];if(b.z===tile.z&&Math.abs(b.y-tile.y)<2){if(b.x===tile.x-2)left=true;if(b.x===tile.x+2)right=true}}
+ return !(left&&right);
 }
-
-/* Gera com algumas tentativas (por segurança). */
-function generateSolvableBoard(layoutPositions, orderedFaces, tries = 30) {
-  for (let t = 0; t < tries; t++) {
-    const res = generateBoard(layoutPositions, orderedFaces);
-    if (res && verifySolvable(res.tiles, res.solution)) return res;
-  }
-  return null;
+function makeBoard(def){
+ const positions=layout(def),tiles=positions.map((p,id)=>({...p,id,face:null,removed:false,el:null}));
+ const present=new Set(tiles.map(t=>t.id)),peel=[];
+ while(present.size){
+   const avail=[...present].filter(id=>free(tiles[id],present,tiles));
+   if(avail.length<2)return makeBoard(def);
+   shuffle(avail);const a=avail[0],b=avail[1];peel.push([a,b]);present.delete(a);present.delete(b);
+ }
+ const typePool=SUITS.slice(0,def.types),faces=[];
+ for(let i=0;i<peel.length;i++)faces.push(typePool[i%typePool.length]);
+ shuffle(faces);
+ peel.forEach((pair,i)=>pair.forEach(id=>tiles[id].face=faces[i]));
+ return tiles;
 }
-
-/* ---------- Definição das fases ---------- */
-/* Cada fase cresce em tamanho e variedade. Sempre solucionável. */
-function buildLevels() {
-  const defs = [
-    { nome: 'Aquecimento',      cols: 4,  rows: 3, layers: 1 }, // 12
-    { nome: 'Primeiros passos', cols: 4,  rows: 4, layers: 1 }, // 16
-    { nome: 'Pegando o jeito',  cols: 5,  rows: 4, layers: 1 }, // 20
-    { nome: 'Mesa maior',       cols: 6,  rows: 4, layers: 1 }, // 24
-    { nome: 'Duas alturas',     cols: 5,  rows: 4, layers: 2 }, // 32
-    { nome: 'Fileiras longas',  cols: 8,  rows: 5, layers: 1 }, // 40
-    { nome: 'Ganhando corpo',   cols: 8,  rows: 6, layers: 1 }, // 48
-    { nome: 'Três andares',     cols: 7,  rows: 4, layers: 3 }, // 56
-    { nome: 'Subindo',          cols: 8,  rows: 5, layers: 2 }, // 68
-    { nome: 'Torre baixa',      cols: 7,  rows: 5, layers: 3 }, // 74
-    { nome: 'Desafio',          cols: 8,  rows: 6, layers: 2 }, // 83
-    { nome: 'Quatro cantos',    cols: 9,  rows: 6, layers: 2 }, // 94
-    { nome: 'Pirâmide',         cols: 8,  rows: 6, layers: 3 }, // 107
-    { nome: 'Grande mesa',      cols: 10, rows: 7, layers: 2 }, // 124
-    { nome: 'Mestre',           cols: 10, rows: 8, layers: 2 }, // 142
-    { nome: 'A grande partida', cols: 9,  rows: 7, layers: 3 }  // 146
-  ];
-  return defs.map((d, i) => {
-    const positions = ensureEven(pyramidLayout(d.cols, d.rows, d.layers));
-    return { numero: i + 1, nome: d.nome, positions };
-  });
+function svgWrap(content){return `<svg viewBox="0 0 100 126" aria-hidden="true">${content}</svg>`}
+function circle(x,y,r,fill,stroke='none',sw=0){return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`}
+function dotFace(n){
+ const pos={1:[[50,63]],2:[[32,38],[68,88]],3:[[30,34],[50,63],[70,92]],4:[[30,36],[70,36],[30,90],[70,90]],5:[[30,34],[70,34],[50,63],[30,92],[70,92]],6:[[28,30],[72,30],[28,63],[72,63],[28,96],[72,96]],7:[[28,26],[72,26],[28,54],[50,63],[72,72],[28,100],[72,100]],8:[[28,25],[72,25],[28,50],[72,50],[28,76],[72,76],[28,101],[72,101]],9:[[27,25],[50,25],[73,25],[27,63],[50,63],[73,63],[27,101],[50,101],[73,101]]}[n];
+ const palette=[COLORS.red,COLORS.blue,COLORS.green];
+ return svgWrap(pos.map((p,i)=>circle(p[0],p[1],10,palette[i%3],'#fff',2)+circle(p[0],p[1],3,'#fff')).join(''));
 }
-
-// Exporta para Node (teste). No navegador, as funções ficam globais.
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    shuffle, isFreeIn, pyramidLayout, ensureEven, FACE_ORDER,
-    generateBoard, verifySolvable, generateSolvableBoard, buildLevels
-  };
+function bamFace(n){
+ const positions=[];const cols=n<=3?n:3;const rows=Math.ceil(n/cols);
+ for(let i=0;i<n;i++){const c=i%cols,r=Math.floor(i/cols);positions.push([50+(c-(cols-1)/2)*27,63+(r-(rows-1)/2)*32])}
+ return svgWrap(positions.map((p,i)=>`<g transform="translate(${p[0]} ${p[1]}) rotate(${i%2?5:-5})"><rect x="-5" y="-17" width="10" height="34" rx="5" fill="${i%3===0?COLORS.green:COLORS.blue}"/><path d="M-7 -5 L7 -5 M-7 6 L7 6" stroke="#fff" stroke-width="2"/></g>`).join(''));
 }
-/* ============================================================
-   INTERFACE (usa as funções globais de game-core.js)
-   ============================================================ */
-
-/* Personalize aqui: troque o título para algo pessoal se quiser.
-   Ex.: titulo: 'Mahjong do Vô Nelson' */
-const CONFIG = {
-  titulo: 'Mahjong',
-  subtitulo: 'Encontre os pares e limpe a mesa'
-};
-
-const LEVELS = buildLevels();
-
-// Geometria das peças (px)
-const Ux = 24, Uy = 31, LAYER = 6;
-const TILE_W = 2 * Ux, TILE_H = 2 * Uy;
-
-let prefs = { som: true, destacar: true, unlocked: 1 };
-let S = null; // estado da partida atual
-
-/* ---------- Persistência (tolerante a falha) ---------- */
-function salvarPrefs() {
-  try { localStorage.setItem('mahjong_prefs', JSON.stringify(prefs)); } catch (e) {}
+const zh=['','一','二','三','四','五','六','七','八','九'];
+function charFace(n){return svgWrap(`<text x="50" y="58" text-anchor="middle" font-size="43" font-weight="900" fill="${COLORS.red}">${zh[n]}</text><text x="50" y="100" text-anchor="middle" font-size="38" font-weight="900" fill="${COLORS.black}">萬</text>`)}
+function honorFace(face){
+ const data={east:['東',COLORS.green],south:['南',COLORS.red],west:['西',COLORS.blue],north:['北',COLORS.black],red:['中',COLORS.red],green:['發',COLORS.green]};
+ if(face==='white')return svgWrap(`<rect x="20" y="21" width="60" height="84" rx="5" fill="none" stroke="${COLORS.blue}" stroke-width="8"/>`);
+ const d=data[face];return svgWrap(`<text x="50" y="84" text-anchor="middle" font-size="63" font-weight="900" fill="${d[1]}">${d[0]}</text>`)
 }
-function carregarPrefs() {
-  try {
-    const raw = localStorage.getItem('mahjong_prefs');
-    if (raw) prefs = Object.assign(prefs, JSON.parse(raw));
-  } catch (e) {}
+function faceHTML(face){if(face.startsWith('dot'))return dotFace(+face.slice(3));if(face.startsWith('bam'))return bamFace(+face.slice(3));if(face.startsWith('char'))return charFace(+face.slice(4));return honorFace(face)}
+function startLevel(i){
+ currentLevel=i;const def=LEVELS[i],tiles=makeBoard(def);
+ state={tiles,present:new Set(tiles.map(t=>t.id)),selected:null,undo:[]};
+ $('startScreen').classList.add('hidden');$('levelScreen').classList.add('hidden');$('winScreen').classList.add('hidden');
+ $('levelTitle').textContent=`Fase ${i+1}: ${def.name}`;render();
 }
-
-/* ---------- Som (WebAudio, iniciado no primeiro toque) ---------- */
-let audioCtx = null;
-function initAudio() {
-  if (!audioCtx) {
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
-  }
+function render(){
+ const board=$('board');board.innerHTML='';
+ const wrap=$('boardWrap'),maxZ=Math.max(...state.tiles.map(t=>t.z));
+ const baseW=82,baseH=102,gapX=6,gapY=7,layer=7;
+ let maxR=0,maxB=0;
+ state.tiles.forEach(t=>{
+   const left=t.x/2*(baseW+gapX)+t.z*(baseW+gapX)/2;
+   const top=t.y/2*(baseH+gapY)+t.z*(baseH+gapY)/2;
+   const el=document.createElement('button');el.className='tile';el.setAttribute('aria-label','Peça de Mahjong');
+   Object.assign(el.style,{left:left+'px',top:top+'px',width:baseW+'px',height:baseH+'px',zIndex:String(t.z*1000+t.y*10+t.x)});
+   el.innerHTML=`<div class="face">${faceHTML(t.face)}</div>`;el.onclick=()=>tap(t.id);t.el=el;board.appendChild(el);
+   maxR=Math.max(maxR,left+baseW+maxZ*layer);maxB=Math.max(maxB,top+baseH+maxZ*layer);
+ });
+ board.style.width=maxR+'px';board.style.height=maxB+'px';
+ const scale=Math.min(1,(wrap.clientWidth-18)/maxR,(wrap.clientHeight-18)/maxB);
+ board.style.transform=`scale(${scale})`;
+ updateTiles();updateStatus();
 }
-function beep(freqs, dur = 0.12, tipo = 'sine', vol = 0.15) {
-  if (!prefs.som || !audioCtx) return;
-  const now = audioCtx.currentTime;
-  freqs.forEach((f, i) => {
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = tipo; o.frequency.value = f;
-    g.gain.setValueAtTime(0, now + i * dur);
-    g.gain.linearRampToValueAtTime(vol, now + i * dur + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + i * dur + dur);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(now + i * dur); o.stop(now + i * dur + dur + 0.02);
-  });
+function updateTiles(){state.tiles.forEach(t=>{if(!t.el)return;if(t.removed){t.el.style.display='none';return}const isFree=free(t,state.present,state.tiles);t.el.classList.toggle('playable',isFree);t.el.classList.toggle('blocked',!isFree);t.el.classList.toggle('selected',state.selected===t.id)})}
+function updateStatus(){$('pairsText').textContent=`${state.present.size/2} pares`;$('undoBtn').disabled=!state.undo.length}
+function tap(id){
+ const t=state.tiles[id];if(!free(t,state.present,state.tiles)){showToast();t.el.classList.remove('wrong');void t.el.offsetWidth;t.el.classList.add('wrong');return}
+ if(state.selected===id){state.selected=null;updateTiles();return}
+ if(state.selected===null){state.selected=id;updateTiles();return}
+ const a=state.tiles[state.selected];
+ if(a.face===t.face){state.undo.push([a.id,t.id]);a.removed=t.removed=true;state.present.delete(a.id);state.present.delete(t.id);state.selected=null;updateTiles();updateStatus();if(!state.present.size)setTimeout(win,280);else if(!hasMove())setTimeout(hint,300)}
+ else{state.selected=id;updateTiles()}
 }
-const somPar = () => beep([660, 880], 0.09);
-const somErro = () => beep([200], 0.12, 'triangle', 0.08);
-const somVitoria = () => beep([523, 659, 784, 1047], 0.14, 'sine', 0.16);
-
-/* ---------- Desenho das peças ---------- */
-function pips(n, kind) {
-  let s = `<div class="pipgrid ${kind}">`;
-  for (let i = 0; i < n; i++) s += `<span class="pip"></span>`;
-  s += `</div><span class="corner">${n}</span>`;
-  return s;
-}
-function renderFace(face) {
-  if (face.startsWith('dot')) return pips(+face.slice(3), 'dot');
-  if (face.startsWith('bam')) return pips(+face.slice(3), 'bam');
-  if (face.startsWith('chr')) {
-    const n = +face.slice(3);
-    return `<div class="chr"><span class="chr-num">${n}</span><span class="chr-wan">萬</span></div>`;
-  }
-  const winds = { windE: ['東', 'w-e'], windS: ['南', 'w-s'], windW: ['西', 'w-w'], windN: ['北', 'w-n'] };
-  if (winds[face]) return `<div class="wind ${winds[face][1]}">${winds[face][0]}</div>`;
-  if (face === 'dragR') return `<div class="drag d-r">中</div>`;
-  if (face === 'dragG') return `<div class="drag d-g">發</div>`;
-  if (face === 'dragW') return `<div class="drag d-w"><span class="dw-frame"></span></div>`;
-  const emo = { flo1: '🌸', flo2: '🌺', flo3: '🌻', flo4: '🌷', sea1: '🌱', sea2: '☀️', sea3: '🍁', sea4: '❄️' };
-  if (emo[face]) return `<div class="emo">${emo[face]}</div>`;
-  return '?';
-}
-
-/* ---------- Iniciar fase ---------- */
-function startLevel(index) {
-  const lv = LEVELS[index];
-  const board = generateSolvableBoard(lv.positions, FACE_ORDER, 60);
-  const tiles = board.tiles.map(t => ({ x: t.x, y: t.y, z: t.z, id: t.id, face: t.face, removed: false, el: null }));
-  S = {
-    index,
-    tiles,
-    present: new Set(tiles.map(t => t.id)),
-    selected: null,
-    undo: [],
-    moves: 0,
-    startTime: Date.now(),
-    elapsed: 0,
-    timer: null
-  };
-  renderBoard();
-  startTimer();
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('levelMenu').classList.add('hidden');
-  document.getElementById('winScreen').classList.add('hidden');
-  updateHUD();
-}
-
-function startTimer() {
-  stopTimer();
-  S.timer = setInterval(() => {
-    S.elapsed = Math.floor((Date.now() - S.startTime) / 1000);
-    document.getElementById('tempo').textContent = fmtTime(S.elapsed);
-  }, 500);
-}
-function stopTimer() { if (S && S.timer) { clearInterval(S.timer); S.timer = null; } }
-function fmtTime(s) {
-  const m = Math.floor(s / 60), r = s % 60;
-  return `${m}:${String(r).padStart(2, '0')}`;
-}
-
-/* ---------- Render do tabuleiro ---------- */
-function renderBoard() {
-  const board = document.getElementById('board');
-  board.innerHTML = '';
-  const maxLayers = Math.max(...S.tiles.map(t => t.z)) + 1;
-  let maxRight = 0, maxBottom = 0;
-
-  for (const t of S.tiles) {
-    const left = t.x * Ux + (maxLayers - 1 - t.z) * LAYER;
-    const top = t.y * Uy + (maxLayers - 1 - t.z) * LAYER;
-    const el = document.createElement('div');
-    el.className = 'tile';
-    el.style.left = left + 'px';
-    el.style.top = top + 'px';
-    el.style.width = TILE_W + 'px';
-    el.style.height = TILE_H + 'px';
-    el.style.zIndex = t.z * 10000 + t.y * 100 + t.x;
-    el.innerHTML = `<div class="tile-face">${renderFace(t.face)}</div>`;
-    el.addEventListener('click', () => onTileClick(t.id));
-    t.el = el;
-    board.appendChild(el);
-    maxRight = Math.max(maxRight, left + TILE_W);
-    maxBottom = Math.max(maxBottom, top + TILE_H);
-  }
-  board.dataset.w = maxRight;
-  board.dataset.h = maxBottom;
-  board.style.width = maxRight + 'px';
-  board.style.height = maxBottom + 'px';
-  fitBoard();
-  updateFreeHighlight();
-}
-
-function fitBoard() {
-  const vp = document.getElementById('boardViewport');
-  const board = document.getElementById('board');
-  const bw = +board.dataset.w, bh = +board.dataset.h;
-  if (!bw) return;
-  const availW = vp.clientWidth - 10;
-  const availH = window.innerHeight - vp.getBoundingClientRect().top - 12;
-  const scale = Math.min(1, availW / bw, availH / bh);
-  board.style.transform = `scale(${scale})`;
-  board.style.left = Math.max(0, (availW - bw * scale) / 2) + 'px';
-  vp.style.height = (bh * scale + 4) + 'px';
-}
-window.addEventListener('resize', () => { if (S) fitBoard(); });
-
-/* ---------- Peças livres / destaque ---------- */
-function tilesById() { return S.tiles; } // id == índice
-function isFreeNow(tile) { return isFreeIn(tile, S.present, S.tiles); }
-
-function updateFreeHighlight() {
-  for (const t of S.tiles) {
-    if (t.removed || !t.el) continue;
-    const free = isFreeNow(t);
-    t.el.classList.toggle('free', free && prefs.destacar);
-    t.el.classList.toggle('blocked', !free && prefs.destacar);
-  }
-}
-
-/* ---------- Interação ---------- */
-function onTileClick(id) {
-  initAudio();
-  const t = S.tiles[id];
-  if (t.removed) return;
-  if (!isFreeNow(t)) { // bloqueada: aviso suave
-    t.el.classList.remove('shake'); void t.el.offsetWidth; t.el.classList.add('shake');
-    return;
-  }
-  if (S.selected === id) { // clicou de novo -> desmarca
-    setSelected(null);
-    return;
-  }
-  if (S.selected == null) {
-    setSelected(id);
-    return;
-  }
-  const prev = S.tiles[S.selected];
-  if (prev.face === t.face) {
-    removePair(prev.id, t.id);
-  } else {
-    setSelected(id); // troca a seleção
-  }
-}
-function setSelected(id) {
-  if (S.selected != null && S.tiles[S.selected].el) S.tiles[S.selected].el.classList.remove('selected');
-  S.selected = id;
-  if (id != null && S.tiles[id].el) S.tiles[id].el.classList.add('selected');
-}
-
-function removePair(a, b) {
-  const ta = S.tiles[a], tb = S.tiles[b];
-  S.undo.push({ a, b, face: ta.face });
-  S.moves++;
-  setSelected(null);
-  ta.removed = tb.removed = true;
-  S.present.delete(a); S.present.delete(b);
-  [ta, tb].forEach(t => {
-    t.el.classList.add('removing');
-    setTimeout(() => { if (t.el && t.removed) t.el.style.display = 'none'; }, 260);
-  });
-  somPar();
-  updateFreeHighlight();
-  updateHUD();
-  clearHints();
-  checkState();
-}
-
-function checkState() {
-  if (S.present.size === 0) { winLevel(); return; }
-  if (!existeParLivre()) mostrarToastEmbaralhar();
-}
-function freeTiles() {
-  return [...S.present].map(id => S.tiles[id]).filter(t => isFreeNow(t));
-}
-function existeParLivre() {
-  const grupos = {};
-  for (const t of freeTiles()) {
-    grupos[t.face] = (grupos[t.face] || 0) + 1;
-    if (grupos[t.face] >= 2) return true;
-  }
-  return false;
-}
-
-/* ---------- Dica ---------- */
-let hintTimeout = null;
-function clearHints() {
-  document.querySelectorAll('.tile.hint').forEach(el => el.classList.remove('hint'));
-  if (hintTimeout) { clearTimeout(hintTimeout); hintTimeout = null; }
-}
-function darDica() {
-  initAudio();
-  clearHints();
-  const livres = freeTiles();
-  const porFace = {};
-  for (const t of livres) { (porFace[t.face] = porFace[t.face] || []).push(t); }
-  for (const face in porFace) {
-    if (porFace[face].length >= 2) {
-      porFace[face][0].el.classList.add('hint');
-      porFace[face][1].el.classList.add('hint');
-      hintTimeout = setTimeout(clearHints, 1800);
-      return;
-    }
-  }
-  mostrarToastEmbaralhar();
-}
-
-/* ---------- Desfazer ---------- */
-function desfazer() {
-  initAudio();
-  if (!S.undo.length) return;
-  const { a, b } = S.undo.pop();
-  [a, b].forEach(id => {
-    const t = S.tiles[id];
-    t.removed = false;
-    S.present.add(id);
-    if (t.el) { t.el.style.display = ''; t.el.classList.remove('removing'); }
-  });
-  S.moves = Math.max(0, S.moves - 1);
-  setSelected(null);
-  updateFreeHighlight();
-  updateHUD();
-  clearHints();
-}
-
-/* ---------- Embaralhar (mantém solucionável) ---------- */
-function embaralhar() {
-  initAudio();
-  esconderToast();
-  const ids = [...S.present];
-  const positions = ids.map(id => ({ x: S.tiles[id].x, y: S.tiles[id].y, z: S.tiles[id].z }));
-  const novo = generateSolvableBoard(positions, FACE_ORDER, 60);
-  if (!novo) return;
-  ids.forEach((id, i) => {
-    S.tiles[id].face = novo.tiles[i].face;
-    if (S.tiles[id].el) S.tiles[id].el.querySelector('.tile-face').innerHTML = renderFace(novo.tiles[i].face);
-  });
-  S.undo = []; // faces mudaram: histórico antigo não vale mais
-  setSelected(null);
-  updateFreeHighlight();
-}
-
-/* ---------- Reiniciar fase ---------- */
-function reiniciar() {
-  initAudio();
-  esconderToast();
-  startLevel(S.index);
-}
-
-/* ---------- HUD ---------- */
-function updateHUD() {
-  const lv = LEVELS[S.index];
-  document.getElementById('faseNum').textContent = `Fase ${lv.numero}`;
-  document.getElementById('faseNome').textContent = lv.nome;
-  document.getElementById('pares').textContent = (S.present.size / 2) + ' pares';
-  document.getElementById('tempo').textContent = fmtTime(S.elapsed);
-  document.getElementById('btnDesfazer').disabled = S.undo.length === 0;
-}
-
-/* ---------- Vitória ---------- */
-function winLevel() {
-  stopTimer();
-  somVitoria();
-  const lv = LEVELS[S.index];
-  if (lv.numero >= prefs.unlocked && lv.numero < LEVELS.length) {
-    prefs.unlocked = lv.numero + 1;
-    salvarPrefs();
-  }
-  const ehUltima = S.index === LEVELS.length - 1;
-  document.getElementById('winTitulo').textContent = ehUltima ? 'Você terminou tudo!' : 'Fase concluída!';
-  document.getElementById('winTexto').textContent = ehUltima
-    ? `Parabéns! Você limpou todas as ${LEVELS.length} fases.`
-    : `${lv.nome} — tempo ${fmtTime(S.elapsed)}, ${S.moves} jogadas.`;
-  const btnProx = document.getElementById('btnProxima');
-  btnProx.style.display = ehUltima ? 'none' : '';
-  document.getElementById('winScreen').classList.remove('hidden');
-}
-function proximaFase() {
-  if (S.index < LEVELS.length - 1) startLevel(S.index + 1);
-}
-
-/* ---------- Toast "sem jogadas" ---------- */
-function mostrarToastEmbaralhar() { document.getElementById('toast').classList.remove('hidden'); }
-function esconderToast() { document.getElementById('toast').classList.add('hidden'); }
-
-/* ---------- Menu de fases ---------- */
-function abrirMenu() {
-  const grid = document.getElementById('faseGrid');
-  grid.innerHTML = '';
-  LEVELS.forEach(lv => {
-    const desbloqueada = lv.numero <= prefs.unlocked;
-    const b = document.createElement('button');
-    b.className = 'fase-btn' + (desbloqueada ? '' : ' locked');
-    b.innerHTML = desbloqueada
-      ? `<span class="fase-n">${lv.numero}</span><span class="fase-nm">${lv.nome}</span>`
-      : `<span class="fase-lock">🔒</span><span class="fase-nm">${lv.nome}</span>`;
-    if (desbloqueada) b.addEventListener('click', () => startLevel(lv.numero - 1));
-    grid.appendChild(b);
-  });
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('winScreen').classList.add('hidden');
-  document.getElementById('levelMenu').classList.remove('hidden');
-}
-
-/* ---------- Preferências (toggles) ---------- */
-function atualizarToggles() {
-  document.getElementById('btnSom').textContent = prefs.som ? '🔊 Som' : '🔇 Som';
-  const bd = document.getElementById('btnDestacar');
-  bd.textContent = prefs.destacar ? '👁 Destaque: on' : '👁 Destaque: off';
-}
-function toggleSom() { prefs.som = !prefs.som; salvarPrefs(); atualizarToggles(); initAudio(); }
-function toggleDestacar() { prefs.destacar = !prefs.destacar; salvarPrefs(); atualizarToggles(); if (S) updateFreeHighlight(); }
-
-/* ---------- Boot ---------- */
-function jogar() {
-  const alvo = Math.min(prefs.unlocked, LEVELS.length) - 1;
-  startLevel(alvo);
-}
-function init() {
-  carregarPrefs();
-  atualizarToggles();
-  document.getElementById('titulo').textContent = CONFIG.titulo;
-  document.getElementById('subtitulo').textContent = CONFIG.subtitulo;
-
-  document.getElementById('btnJogar').addEventListener('click', () => { initAudio(); jogar(); });
-  document.getElementById('btnMenuStart').addEventListener('click', abrirMenu);
-  document.getElementById('btnDica').addEventListener('click', darDica);
-  document.getElementById('btnDesfazer').addEventListener('click', desfazer);
-  document.getElementById('btnEmbaralhar').addEventListener('click', embaralhar);
-  document.getElementById('btnReiniciar').addEventListener('click', reiniciar);
-  document.getElementById('btnFases').addEventListener('click', abrirMenu);
-  document.getElementById('btnSom').addEventListener('click', toggleSom);
-  document.getElementById('btnDestacar').addEventListener('click', toggleDestacar);
-  document.getElementById('btnProxima').addEventListener('click', proximaFase);
-  document.getElementById('btnJogarNovamente').addEventListener('click', () => startLevel(S.index));
-  document.getElementById('btnWinFases').addEventListener('click', abrirMenu);
-  document.getElementById('btnMenuVoltar').addEventListener('click', () => {
-    document.getElementById('levelMenu').classList.add('hidden');
-    if (S) { document.getElementById('winScreen').classList.add('hidden'); }
-    else document.getElementById('startScreen').classList.remove('hidden');
-  });
-  document.getElementById('toastBtn').addEventListener('click', embaralhar);
-}
-document.addEventListener('DOMContentLoaded', init);
-
+function pairs(){const by={};[...state.present].map(id=>state.tiles[id]).filter(t=>free(t,state.present,state.tiles)).forEach(t=>(by[t.face]??=[]).push(t));return Object.values(by).filter(a=>a.length>1)}
+function hasMove(){return pairs().length>0}
+function hint(){document.querySelectorAll('.hint').forEach(e=>e.classList.remove('hint'));let p=pairs()[0];if(!p){reshuffle();p=pairs()[0]}if(p){p[0].el.classList.add('hint');p[1].el.classList.add('hint');setTimeout(()=>p.forEach(t=>t.el&&t.el.classList.remove('hint')),3000)}}
+function reshuffle(){const ids=[...state.present],faces=shuffle(ids.map(id=>state.tiles[id].face));ids.forEach((id,i)=>{state.tiles[id].face=faces[i];state.tiles[id].el.querySelector('.face').innerHTML=faceHTML(faces[i])});state.undo=[];state.selected=null;updateTiles();updateStatus();if(!hasMove())reshuffle()}
+function undo(){const p=state.undo.pop();if(!p)return;p.forEach(id=>{state.tiles[id].removed=false;state.present.add(id)});state.selected=null;updateTiles();updateStatus()}
+function win(){$('nextBtn').textContent=currentLevel===LEVELS.length-1?'Jogar desde o começo':'Próxima fase';$('winScreen').classList.remove('hidden')}
+function showToast(){clearTimeout(toastTimer);$('toast').classList.remove('hidden');toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),1800)}
+function openLevels(){const box=$('levels');box.innerHTML='';LEVELS.forEach((l,i)=>{const b=document.createElement('button');b.className='level';b.innerHTML=`Fase ${i+1}<small>${l.name}</small>`;b.onclick=()=>startLevel(i);box.appendChild(b)});$('levelScreen').classList.remove('hidden')}
+$('playBtn').onclick=()=>startLevel(0);$('chooseBtn').onclick=openLevels;$('closeLevels').onclick=()=>$('levelScreen').classList.add('hidden');
+$('hintBtn').onclick=hint;$('undoBtn').onclick=undo;$('menuBtn').onclick=openLevels;$('againBtn').onclick=()=>startLevel(currentLevel);$('nextBtn').onclick=()=>startLevel(currentLevel===LEVELS.length-1?0:currentLevel+1);
+window.addEventListener('resize',()=>state&&render());
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
 </body>
 </html>
